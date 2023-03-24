@@ -1,0 +1,82 @@
+# this script performs hyperparameter tuning on the XGBoost model
+
+# import libraries
+from xgboost import XGBRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+from itertools import product
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+import pickle
+import xgboost as xgb
+
+xgb_reg = xgb.XGBRegressor()
+
+# read in training and validation data
+X_train = pd.read_excel('X_train.xlsx')
+X_val = pd.read_excel('X_val.xlsx')
+y_train = pd.read_excel('y_train.xlsx')
+y_val = pd.read_excel('y_val.xlsx')
+
+# scale the features using StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_val = scaler.transform(X_val)
+
+xgb_reg.fit(X_train, y_train)
+
+# tune hyperparameters
+# Define the hyperparameter grid
+param_grid = {
+'n_estimators': [10, 25, 40, 80, 100],
+    'learning_rate': [0.4, 0.45, 0.5, 0.6],
+    'max_depth': [1, 2, 4, 5, 8],
+    'reg_alpha': [0.1, 0.5, 1, 5, 10],
+    'reg_lambda': [0.01, 0.1, 0.4, 1, 5]
+}
+
+# Initialize variables to keep track of the minimum MSE and its corresponding hyperparameters
+min_mse = float('inf')
+optimized_r2 = 0
+min_n_estimators = None
+min_learning_rate = None
+min_max_depth = None
+min_reg_alpha = None
+min_reg_lambda = None
+
+# Create a list of all possible combinations of hyperparameters
+hyperparam_combinations = list(product(param_grid['n_estimators'], param_grid['learning_rate'],
+                                        param_grid['max_depth'], param_grid['reg_alpha'], param_grid['reg_lambda']))
+
+# Iterate over each hyperparameter combination and train the model
+for n_estimators, learning_rate, max_depth, reg_alpha, reg_lambda in hyperparam_combinations:
+    xgb_reg.set_params(n_estimators=n_estimators, learning_rate=learning_rate, max_depth=max_depth,
+                        reg_alpha=reg_alpha, reg_lambda=reg_lambda)
+    xgb_reg.fit(X_train, y_train, eval_set=[(X_val, y_val)], early_stopping_rounds=10, verbose=False)
+    y_pred = xgb_reg.predict(X_val)
+    mse = mean_squared_error(y_val, y_pred)
+    r2 = r2_score(y_val, y_pred)
+    print(f"n_estimators={n_estimators}, learning_rate={learning_rate}, max_depth={max_depth}, reg_alpha={reg_alpha}, reg_lambda={reg_lambda} -- Validation Mean Squared Error: {mse}")
+
+    # Check if the current MSE is lower than the minimum MSE
+    if mse < min_mse:
+        min_mse = mse
+        optimized_r2 = r2
+        min_n_estimators = n_estimators
+        min_learning_rate = learning_rate
+        min_max_depth = max_depth
+        min_reg_alpha = reg_alpha
+        min_reg_lambda = reg_lambda
+
+# Print the hyperparameters with the lowest MSE
+print(f"Minimum Mean Squared Error: {min_mse}")
+print(f"R2 Score of Optimized Model: {optimized_r2}")
+print(f"Hyperparameters: n_estimators={n_estimators}, learning_rate={learning_rate}, max_depth={max_depth}, reg_alpha={reg_alpha}, reg_lambda={reg_lambda}")
+
+# Save the model to a file
+with open('XGBoost_optimized.pkl', 'wb') as f:
+    pickle.dump(xgb_reg, f)
+
+# Load the saved model from a file
+with open('XGBoost_optimized.pkl', 'rb') as f:
+    model = pickle.load(f)
