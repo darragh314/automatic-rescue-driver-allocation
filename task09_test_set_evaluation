@@ -1,0 +1,189 @@
+# this script evaluates the models using the test dataset
+
+from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib as plt
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+import pickle
+
+############### AdaBoost #######################
+X_train = pd.read_excel('X_train.xlsx')
+X_test = pd.read_excel('X_test.xlsx')
+y_train = pd.read_excel('y_train.xlsx')
+y_test = pd.read_excel('y_test.xlsx')
+
+# scale the features using StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Evaluate the optimized AdaBoost model on the test set
+with open('AdaBoost_optimized.pkl', 'rb') as f:
+    model = pickle.load(f)
+y_pred = model.predict(X_test)
+
+# Calculate the MSE and R2 value for the optimized AdaBoost model
+mse_adaboost_test = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+print(f"Optimized AdaBoost Mean Squared Error: {mse_adaboost_test}")
+print(f"Optimized AdaBoost R2 Score: {r2}")
+
+
+############### ElasticNet #######################
+X_train = pd.read_excel('X_train.xlsx')
+X_test = pd.read_excel('X_test.xlsx')
+y_train = pd.read_excel('y_train.xlsx')
+y_test = pd.read_excel('y_test.xlsx')
+
+# scale the features using StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Evaluate the optimized ElasticNet model on the test set
+with open('ElasticNet_optimized.pkl', 'rb') as f:
+    model = pickle.load(f)
+y_pred = model.predict(X_test)
+
+# Calculate the MSE and R2 value for the optimized ElasticNet model
+mse_elasticnet_test = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+print(f"Optimized ElasticNet Mean Squared Error: {mse_elasticnet_test}")
+print(f"Optimized ElasticNet R2 Score: {r2}")
+
+############### Gradient Boost #######################
+X_train = pd.read_excel('X_train.xlsx')
+X_test = pd.read_excel('X_test.xlsx')
+y_train = pd.read_excel('y_train.xlsx')
+y_test = pd.read_excel('y_test.xlsx')
+
+# scale the features using StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Evaluate the optimized Gradient Boost model on the test set
+with open('Gradient_Boost_optimized.pkl', 'rb') as f:
+    model = pickle.load(f)
+y_pred = model.predict(X_test)
+
+# Calculate the MSE and R2 value for the optimized Gradient Boost model
+mse_gradientboost_test = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+print(f"Optimized Gradient Boost Mean Squared Error: {mse_gradientboost_test}")
+print(f"Optimized Gradient Boost R2 Score: {r2}")
+
+############### MLP #######################
+X_train = pd.read_excel('X_train.xlsx')
+X_test = pd.read_excel('X_test.xlsx')
+y_train = pd.read_excel('y_train.xlsx')
+y_test = pd.read_excel('y_test.xlsx')
+
+# scale the features using StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Evaluate the optimized MLP model on the test set
+with open('MLP_optimized.pkl', 'rb') as f:
+    model = pickle.load(f)
+y_pred = model.predict(X_test)
+
+# Calculate the MSE and R2 value for the optimized MLP model
+mse_mlp_test = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+print(f"Optimized MLP Mean Squared Error: {mse_mlp_test}")
+print(f"Optimized MLP R2 Score: {r2}")
+
+############### RNN #######################
+X_train = pd.read_excel('X_train.xlsx')
+X_test = pd.read_excel('X_test.xlsx')
+y_train = pd.read_excel('y_train.xlsx')
+y_test = pd.read_excel('y_test.xlsx')
+
+# scale the features using StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Reshape the input data to be 3D for LSTM layer
+X_test = X_test.reshape((X_test.shape[0], 1, X_test.shape[1]))
+
+# Evaluate the optimized RNN model on the test set
+with open('RNN_optimized.pkl', 'rb') as f:
+    model = pickle.load(f)
+y_pred = model.predict(X_test)
+
+# Calculate the MSE and R2 value for the optimized RNN model
+mse_rnn_test = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+print(f"Optimized RNN Mean Squared Error: {mse_rnn_test}")
+print(f"Optimized RNN R2 Score: {r2}")
+
+############### XGBoost #######################
+X_train = pd.read_excel('X_train.xlsx')
+X_test = pd.read_excel('X_test.xlsx')
+y_train = pd.read_excel('y_train.xlsx')
+y_test = pd.read_excel('y_test.xlsx')
+
+# scale the features using StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Evaluate the optimized XGBoost model on the test set
+with open('XGBoost_optimized.pkl', 'rb') as f:
+    model = pickle.load(f)
+y_pred = model.predict(X_test)
+
+# Calculate the MSE and R2 value for the optimized XGBoost model
+mse_xgboost_test = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+print(f"Optimized XGBoost Mean Squared Error: {mse_xgboost_test}")
+print(f"Optimized XGBoost R2 Score: {r2}")
+
+############# plot test results compared to validation set ########
+import matplotlib.pyplot as plt
+
+# MSE values following hyperparameter tuning
+adaboost_tuned_mse = 2951.80
+elasticnet_tuned_mse = 3409.72
+gradient_boost_tuned_mse = 2072.89
+mlp_tuned_mse = 2854.25
+rnn_tuned_mse = 3205.92
+xg_boost_tuned_mse = 2345.25
+
+models = ['Adaboost', 'ElasticNet', 'Gradient Boost', 'MLP', 'RNN', 'XGBoost']
+validation_mse_scores = [adaboost_tuned_mse, elasticnet_tuned_mse,
+                         gradient_boost_tuned_mse, mlp_tuned_mse,
+                         rnn_tuned_mse, xg_boost_tuned_mse]
+
+
+# Plot test MSE vs validation MSE
+plt.figure(figsize=(8, 8))
+plt.plot(models[0], adaboost_tuned_mse, 'go', label='MSE (Validation Set)', markersize=10)
+plt.plot(models[1], elasticnet_tuned_mse, 'go', markersize=10)
+plt.plot(models[2], gradient_boost_tuned_mse, 'go', markersize=10)
+plt.plot(models[3], mlp_tuned_mse, 'go', markersize=10)
+plt.plot(models[4], rnn_tuned_mse, 'go', markersize=10)
+plt.plot(models[5], xg_boost_tuned_mse, 'go', markersize=10)
+plt.ylabel('Mean Squared Error')
+plt.title("Evaluating Trained Models using Test Set")
+plt.xticks(rotation=30, ha='right')
+plt.gca().yaxis.grid(True)
+# for i in range(len(models)):
+#     plt.text(models[i], validation_mse_scores[i]+5, f'{validation_mse_scores[i]:.3f}', ha='center', fontsize=10, color='g')
+plt.plot(models[0], mse_adaboost_test, 'm*', label='MSE (Test Set)', markersize=10)
+plt.plot(models[1], mse_elasticnet_test, 'm*', markersize=10)
+plt.plot(models[2], mse_gradientboost_test, 'm*', markersize=10)
+plt.plot(models[3], mse_mlp_test, 'm*', markersize=10)
+plt.plot(models[4], mse_rnn_test, 'm*', markersize=10)
+plt.plot(models[5], mse_xgboost_test, 'm*', markersize=10)
+plt.text(models[0], mse_adaboost_test +100, f'{mse_adaboost_test:.3f}', ha='center', fontsize=10, color='m')
+plt.text(models[1], mse_elasticnet_test +100, f'{mse_elasticnet_test:.3f}', ha='center', fontsize=10, color='m')
+plt.text(models[2], mse_gradientboost_test +100, f'{mse_gradientboost_test:.3f}', ha='center', fontsize=10, color='m')
+plt.text(models[3], mse_mlp_test +100, f'{mse_mlp_test:.3f}', ha='center', fontsize=10, color='m')
+plt.text(models[4], mse_rnn_test +100, f'{mse_rnn_test:.3f}', ha='center', fontsize=10, color='m')
+plt.text(models[5], mse_xgboost_test +100, f'{mse_xgboost_test:.3f}', ha='center', fontsize=10, color='m')
+plt.legend(loc='upper right')
+plt.show()
