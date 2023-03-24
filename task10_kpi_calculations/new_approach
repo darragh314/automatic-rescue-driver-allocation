@@ -1,0 +1,63 @@
+import pandas as pd
+import pickle
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+
+complete_dataset = pd.read_excel('sickness_table_with_features_sinusoidal.xlsx')
+
+X_test = complete_dataset[['sinusoidal_num_healthy', 'sinusoidal_num_calls', 'month_sin', 'month_cosine', 'year_index']]
+y_test = complete_dataset['sby_need_rolling_mean']
+
+# read in training and validation data
+X_train = pd.read_excel('X_train.xlsx')
+X_val = pd.read_excel('X_val.xlsx')
+y_train = pd.read_excel('y_train.xlsx')
+y_val = pd.read_excel('y_val.xlsx')
+
+# scale the features using StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_val = scaler.transform(X_val)
+X_test = scaler.transform(X_test)
+
+# import optimized model
+with open('Gradient_Boost_optimized.pkl', 'rb') as f:
+    model = pickle.load(f)
+
+preds = model.predict(X_test)
+preds_rounded = np.round(preds)
+complete_dataset['model_sby_allocated'] = preds_rounded
+complete_dataset.loc[complete_dataset['model_sby_allocated']  < 0, 'model_sby_allocated'] = 0
+complete_dataset['model_sby_allocated'] *= 2.5
+complete_dataset.loc[complete_dataset['model_sby_allocated'] < 1, 'model_sby_allocated'] = 1
+complete_dataset['model_drafted'] = complete_dataset['sby_need'] - complete_dataset['model_sby_allocated']
+complete_dataset.loc[complete_dataset['model_drafted'] < 0, 'model_drafted'] = 0
+complete_dataset.to_excel('df_with_model_sby_allocations.xlsx', index=False)
+
+# first we need to calculate the values using the current standby allocation approach
+# these calculations will be based on the test dataset
+old_sby_activation_percentage = (sum(complete_dataset['sby_need'])/sum(complete_dataset['n_sby']))*100
+old_sby_insufficiency_percentage = (((complete_dataset['drafted'] > 0).sum())/len(complete_dataset['drafted']))*100
+
+print('The standby activation percentage using the old approach is: {:.2f}%'.format(old_sby_activation_percentage))
+print('The standby insufficiency percentage using the old approach is: {:.2f}%'.format(old_sby_insufficiency_percentage))
+
+# next we need to calculate the values using our new standby allocation approach
+# these calculations will be based on the entire dataset
+new_sby_activation_percentage = (sum(complete_dataset['sby_need'])/sum(complete_dataset['model_sby_allocated']))*100
+new_sby_insufficiency_percentage = (((complete_dataset['model_drafted'] > 0).sum())/len(complete_dataset['model_drafted']))*100
+
+print('The standby activation percentage using the Gradient Boost model is: {:.2f}%'.format(new_sby_activation_percentage))
+print('The standby insufficiency percentage using the Gradient Boost model is: {:.2f}%'.format(new_sby_insufficiency_percentage))
+
+
+# Create scatter plot of predicted vs actual values
+plt.scatter(complete_dataset['sby_need_rolling_mean'], complete_dataset['model_sby_allocated'])
+plt.xlabel('Actual Values')
+plt.ylabel('Predicted Values')
+plt.title('Predicted vs Actual Values')
+plt.show()
+
+
