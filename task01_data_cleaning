@@ -1,0 +1,24 @@
+# this script performs data cleaning and quality checking steps
+
+# import libraries
+import pandas as pd
+
+# read in Excel file and store as pandas dataframe
+df = pd.read_csv ('sickness_table.csv')
+
+# check for missing values
+print("Number of missing values in each column:")
+print(df.isna().sum())
+
+# check for format errors and duplicates
+df['date'] = pd.to_datetime(df['date'])   # ensure correct date format
+if df.duplicated(subset=['date']).sum() > 0:
+    print("Duplicates present in 'date' column")   # Check for duplicates in 'date' column
+else:
+    print("No duplicates present in 'date' column")
+df_cleaned = df.dropna()   # remove missing values from all columns
+df_cleaned.drop(columns = df_cleaned.columns[0], axis = 1, inplace= True)
+
+# export cleaned dataframe as excel file
+df_cleaned.to_excel('sickness_table_cleaned.xlsx', index=False)
+df_cleaned = pd.read_excel('sickness_table_cleaned.xlsx')
