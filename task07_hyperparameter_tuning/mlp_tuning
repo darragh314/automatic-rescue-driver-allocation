@@ -1,0 +1,84 @@
+# this script performs hyperparameter tuning on the MLP model
+
+# import libraries
+from sklearn.metrics import mean_squared_error, r2_score
+from itertools import product
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+import pickle
+
+from sklearn.neural_network import MLPRegressor
+
+# Train a Gradient Boosting Regressor on the training data
+mlp = MLPRegressor()
+
+# read in training and validation data
+X_train = pd.read_excel('X_train.xlsx')
+X_val = pd.read_excel('X_val.xlsx')
+y_train = pd.read_excel('y_train.xlsx')
+y_val = pd.read_excel('y_val.xlsx')
+
+# scale the features using StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_val = scaler.transform(X_val)
+
+# Define the hyperparameter grid
+param_grid = {
+    'learning_rate': [0.05, 0.1, 0.2, 0.4],
+    'n_estimators': [10, 30, 50, 70],
+    'max_depth': [4, 8, 10, 15],
+    'min_samples_split': [10, 20, 40, 60],
+    'min_samples_leaf': [2, 3, 4],
+}
+
+# Initialize variables to keep track of the minimum MSE and its corresponding hyperparameters
+min_mse = float('inf')
+optimized_r2 = 0
+min_learning_rate = None
+min_n_estimators = None
+min_max_depth = None
+min_min_samples_split = None
+min_min_samples_leaf = None
+
+# Create a list of all possible combinations of hyperparameters
+hyperparam_combinations = list(product(param_grid['learning_rate'], param_grid['n_estimators'],
+                                        param_grid['max_depth'], param_grid['min_samples_split'],
+                                        param_grid['min_samples_leaf']))
+
+# Iterate over each hyperparameter combination and train the model
+for learning_rate, n_estimators, max_depth, min_samples_split, min_samples_leaf in hyperparam_combinations:
+    mlp.set_params(hidden_layer_sizes=(100,), activation='relu', solver='adam',
+                        learning_rate_init=learning_rate, max_iter=n_estimators,
+                        alpha=min_samples_leaf, batch_size=min_samples_split,
+                        random_state=42)
+    mlp.fit(X_train, y_train)
+    y_pred = mlp.predict(X_val)
+    mse = mean_squared_error(y_val, y_pred)
+    r2 = r2_score(y_val, y_pred)
+    print(f"learning_rate={learning_rate}, n_estimators={n_estimators}, max_depth={max_depth}, min_samples_split={min_samples_split}, min_samples_leaf={min_samples_leaf} -- Validation Mean Squared Error: {mse}")
+
+    # Update minimum MSE and corresponding hyperparameters
+    if  mse < min_mse:
+        min_mse = mse
+        optimized_r2 = r2
+        min_learning_rate = learning_rate
+        min_n_estimators = n_estimators
+        min_max_depth = max_depth
+        min_min_samples_split = min_samples_split
+        min_min_samples_leaf = min_samples_leaf
+
+# Print the hyperparameters with the lowest MSE
+print(f"Minimum Mean Squared Error: {min_mse}")
+print(f"R2 Score of Optimized Model: {optimized_r2}")
+print(f"Hyperparameters: learning_rate={min_learning_rate}, n_estimators={min_n_estimators}, max_depth={min_max_depth}, min_samples_split={min_min_samples_split}, min_samples_leaf={min_min_samples_leaf}")
+
+
+
+# Save the model to a file
+with open('MLP_optimized.pkl', 'wb') as f:
+    pickle.dump(mlp, f)
+
+# Load the saved model from a file
+with open('MLP_optimized.pkl', 'rb') as f:
+    model = pickle.load(f)
