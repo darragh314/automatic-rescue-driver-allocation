@@ -1,0 +1,79 @@
+# this script performs hyperparameter tuning on the ElasticNet model with regularization
+
+# import libraries
+from sklearn.metrics import mean_squared_error, r2_score
+from itertools import product
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import pandas as pd
+import pickle
+
+from sklearn.linear_model import ElasticNet
+
+# Train an ElasticNet Regressor on the training data
+en_reg = ElasticNet()
+
+# read in training and validation data
+X_train = pd.read_excel('X_train.xlsx')
+X_val = pd.read_excel('X_val.xlsx')
+y_train = pd.read_excel('y_train.xlsx')
+y_val = pd.read_excel('y_val.xlsx')
+
+# scale the features using StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_val = scaler.transform(X_val)
+
+# tune hyperparameters
+# Define the hyperparameter grid
+param_grid = {
+    'alpha': [0.1, 0.5, 1, 2, 3],
+    'l1_ratio': [0.1, 0.3, 0.5, 0.8],
+    'max_iter': [10, 25, 40, 60],
+    'tol': [0.001, 0.01, 0.1, 0.5, 0.9],
+}
+
+# Initialize variables to keep track of the minimum MSE and its corresponding hyperparameters
+min_mse = float('inf')
+optimized_r2 = 0
+min_alpha = None
+min_l1_ratio = None
+min_max_iter = None
+min_tol = None
+
+# Create a list of all possible combinations of hyperparameters
+hyperparam_combinations = list(product(param_grid['alpha'], param_grid['l1_ratio'],
+                                        param_grid['max_iter'], param_grid['tol']))
+
+# Iterate over each hyperparameter combination and train the model
+for alpha, l1_ratio, max_iter, tol in hyperparam_combinations:
+    en_reg.set_params(alpha=alpha, l1_ratio=l1_ratio, max_iter=max_iter,
+                        tol=tol)
+    en_reg.fit(X_train, y_train)
+    y_pred = en_reg.predict(X_val)
+    mse = mean_squared_error(y_val, y_pred)
+    r2 = r2_score(y_val, y_pred)
+    print(f"alpha={alpha}, l1_ratio={l1_ratio}, max_iter={max_iter}, tol={tol} -- Validation Mean Squared Error: {mse}")
+    # Update the minimum MSE and its corresponding hyperparameters if a new minimum is found
+    if mse < min_mse:
+        min_mse = mse
+        optimized_r2 = r2
+        min_alpha = alpha
+        min_l1_ratio = l1_ratio
+        min_max_iter = max_iter
+        min_tol = tol
+
+# Print the hyperparameters that give the minimum MSE
+print(f"Minimum Mean Squared Error: {min_mse}")
+print(f"R2 Score of Optimized Model: {optimized_r2}")
+print(f"Corresponding Hyperparameters: alpha={min_alpha}, l1_ratio={min_l1_ratio}, max_iter={min_max_iter}, tol={min_tol}")
+
+# Save the model to a file
+with open('ElasticNet_optimized.pkl', 'wb') as f:
+    pickle.dump(en_reg, f)
+
+# Check that we can load the saved model from a file
+with open('ElasticNet_optimized.pkl', 'rb') as f:
+    model = pickle.load(f)
+
+
