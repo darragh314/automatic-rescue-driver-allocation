@@ -1,0 +1,134 @@
+# this script creates new columns in the dataframe for new features
+# the new features being created are:
+# 1. actual number of healthy drivers
+# 2. actual percentage of healthy drivers
+# 3. month sin
+# 4. month cosine
+# 5. year index
+# 6. sinusoidal model for the percentage of healthy drivers
+# 7. number of healthy drivers from sinusoidal model
+# 8. sinusoidal model for the number of emergency calls
+# 9. rolling mean of sby_need (target variable)
+
+# import libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.optimize
+
+# import cleaned dataframe
+df_cleaned = pd.read_excel('sickness_table_cleaned.xlsx')
+df_features = df_cleaned.copy()
+
+# define the sinusoidal function with linear trend
+def sinusoidal_linear_trend(x, a, b, c, d, e):
+    return a*np.sin(b*x+c)+d*x+e
+
+# creating and storing new features
+
+# 1. create new column to store the number of healthy drivers available
+df_features['actual_num_healthy'] = df_features['n_duty'] - df_features['n_sick']
+
+# 2. create new column to store the daily sickness percentage
+df_features['actual_healthy_percentage'] = 1 - (df_features['n_sick'] / df_features['n_duty'])
+
+# 3. & 4. create new columns to store the month sin and cosine
+df_features['month_index'] = pd.to_datetime(df_features['date']).dt.month
+df_features['month_angle'] = (df_features['month_index'] - 1) / 12 * 2 * np.pi  # Convert month index to radians
+df_features['month_sin'] = np.sin(df_features['month_angle'])             # sin
+df_features['month_cosine'] = np.cos(df_features['month_angle'])          # cosine
+
+# 5. create new column to store the index of the year
+df_features['year'] = pd.DatetimeIndex(df_features['date']).year
+df_features['year_index'] = df_features['year'].apply(lambda year: 1 if year == 2016
+else (2 if year == 2017 else (3 if year == 2018 else 4)))
+
+# 6. & 7. plotting best fit sinusoidal with linear trend for healthy percentage of drivers
+rolling_mean = df_features['actual_healthy_percentage'].rolling(window=30, center = True).mean()
+rolling_mean = rolling_mean.dropna()  # drop NA rows due to rolling mean
+# create an array of x-values for the curve
+x = np.arange(len(rolling_mean))
+# fit curve to the rolling_mean using curve_fit
+popt, pcov = scipy.optimize.curve_fit(sinusoidal_linear_trend, x, rolling_mean, maxfev=10000, p0=[1, 0.02, 0, 1, 1])
+# save parameters
+np.save('healthy_percentage_params.npy', popt)
+# calculate predicted values using the fitted function
+y_pred = sinusoidal_linear_trend(x, *popt)
+# calculate R-squared value
+ss_res = np.sum((rolling_mean - y_pred)**2)
+ss_tot = np.sum((rolling_mean - np.mean(rolling_mean))**2)
+r_squared = 1 - (ss_res / ss_tot)
+print('R-squared of Sinusoidal Model (healthy percentage):', r_squared)
+# Calculate root mean square error (RMSE)
+rmse = np.sqrt(np.mean((rolling_mean - y_pred)**2))
+print('RMSE of Sinusoidal Model (healthy percentage):', rmse)
+# plot the rolling_mean and the fitted curve
+plt.plot(x, rolling_mean, label='Rolling Mean')
+plt.plot(x, y_pred, label='Fitted Sinusoidal Model for Healthy Percentage of Drivers')
+plt.title("Fitting a Sinusoidal Model to the Actual Healthy Percentage (30-Day Rolling Mean)")
+plt.xlabel("Days")
+plt.ylabel("% Healthy Drivers")
+plt.legend()
+plt.show()
+# store new features in dataframe
+df_features['sinusoidal_healthy_percentage'] = sinusoidal_linear_trend(np.arange(len(df_features['date'])), *popt)
+df_features['sinusoidal_num_healthy'] = df_features['sinusoidal_healthy_percentage']*df_features['n_duty']
+
+# 8. plotting best fit sinusoidal with linear trend for number of emergency calls
+rolling_mean = df_features['calls'].rolling(window=30, center = True).mean()
+rolling_mean = rolling_mean.dropna()
+# create an array of x-values for the curve
+x = np.arange(len(rolling_mean))
+# fit the curve to the rolling_mean using curve_fit
+popt, pcov = scipy.optimize.curve_fit(sinusoidal_linear_trend, x, rolling_mean, maxfev=10000, p0=[50, 0.05, 5, 1, 1])
+np.save('num_calls_params.npy', popt)
+# calculate predicted values using the fitted function
+y_pred = sinusoidal_linear_trend(x, *popt)
+# calculate R-squared value
+ss_res = np.sum((rolling_mean - y_pred)**2)
+ss_tot = np.sum((rolling_mean - np.mean(rolling_mean))**2)
+r_squared = 1 - (ss_res / ss_tot)
+print('R-squared of Sinusoidal Model (num calls):', r_squared)
+# calculate root mean square error (RMSE)
+rmse = np.sqrt(np.mean((rolling_mean - y_pred)**2))
+print('RMSE of Sinusoidal Model (num calls):', rmse)
+# plot the rolling_mean and the fitted curve
+plt.plot(x, rolling_mean, label='Rolling Mean')
+plt.plot(x, y_pred, label='Fitted Sinusoidal Model for Number of Healthy Drivers')
+plt.title("Fitting a Sinusoidal Model to the Actual Number of Calls (30-Day Rolling Mean)")
+plt.xlabel("Days")
+plt.ylabel("Number of Calls")
+plt.legend()
+plt.show()
+
+# 9. rolling mean of sby_need
+# this is our target variable
+rolling_mean = df_features['sby_need'].rolling(window=2, center = True).mean()
+df_features['sby_need_rolling_mean'] = rolling_mean
+df_features = df_features.dropna()
+
+# save new dataframe containing all features
+df_features['sinusoidal_num_calls'] = sinusoidal_linear_trend(np.arange(len(df_features['date'])), *popt)
+df_features.to_excel('sickness_table_with_features_sinusoidal.xlsx', index=False)
+
+# check the correlations between all variables
+columns_to_include = [11, 12, 14, 16, 17, 18]
+df_subset = df_features.iloc[:, columns_to_include]
+correlations = df_subset.corr()
+f = plt.figure(figsize=(8, 8))
+plt.matshow(df_subset.corr(), fignum=f.number, aspect=0.5)
+plt.xticks(range(df_subset.shape[1]), df_subset.columns, fontsize=12, rotation=45)
+plt.yticks(range(df_subset.shape[1]), df_subset.columns, fontsize=12)
+cb = plt.colorbar()
+cb.ax.tick_params(labelsize=10)
+plt.title('Correlation Matrix', fontsize=12)
+plt.tight_layout()
+# Print correlation coefficients
+for i in range(df_subset.shape[1]):
+    for j in range(df_subset.shape[1]):
+        correlation_coefficient = "{:.2f}".format(correlations.iloc[i, j])
+        plt.text(j, i, correlation_coefficient, ha='center', va='center', color='white', fontsize=12)
+plt.show()
+
+
+
