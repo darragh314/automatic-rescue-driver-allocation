@@ -1,0 +1,39 @@
+# this script splits the data into training data, validation data and test data
+# the split is 60% training -- 20% validation -- 20% test
+
+# import libraries
+import pandas as pd
+from sklearn.model_selection import train_test_split
+
+# read in the dataframe with features
+df_features_sinusoidal = pd.read_excel('sickness_table_with_features_sinusoidal.xlsx')
+
+# split the data into training and test sets
+X_train_all, X_test_all, y_train, y_test = train_test_split(df_features_sinusoidal,
+                                                            df_features_sinusoidal['sby_need_rolling_mean'],
+                                                            test_size=0.2, random_state=42)
+
+# select the feature columns for the training set
+X_train = X_train_all[['sinusoidal_num_healthy', 'sinusoidal_num_calls', 'month_sin', 'month_cosine', 'year_index']]
+
+# select the feature columns for the test set
+X_test = X_test_all[['sinusoidal_num_healthy', 'sinusoidal_num_calls', 'month_sin', 'month_cosine', 'year_index']]
+
+# split training data into training and validation sets
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25, random_state=42)
+
+complete_test_dataset = X_test_all.copy()
+complete_test_dataset['sby_need_rolling_mean'] = y_test
+complete_test_dataset.to_excel('complete_test_dataset.xlsx', index=False)
+X_train.to_excel('X_train.xlsx', index=False)
+X_train = pd.read_excel('X_train.xlsx')
+X_val.to_excel('X_val.xlsx', index=False)
+X_val = pd.read_excel('X_val.xlsx')
+X_test.to_excel('X_test.xlsx', index=False)
+X_test = pd.read_excel('X_test.xlsx')
+y_train.to_excel('y_train.xlsx', index=False)
+y_train = pd.read_excel('y_train.xlsx')
+y_val.to_excel('y_val.xlsx', index=False)
+y_val = pd.read_excel('y_val.xlsx')
+y_test.to_excel('y_test.xlsx', index=False)
+y_test = pd.read_excel('y_test.xlsx')
