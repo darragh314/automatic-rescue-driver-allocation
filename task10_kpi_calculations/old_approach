@@ -1,0 +1,16 @@
+# this script calcuates 2 important KPIs using the old allocation approach:
+# 1. standby activation percentage
+# 2. standby insufficiency percentage
+# these calculations are done on the entire dataset
+
+import pandas as pd
+
+complete_dataset = pd.read_excel('sickness_table_with_features_sinusoidal.xlsx')
+
+# first we need to calculate the values using the current standby allocation approach
+# these calculations will be based on the test dataset
+old_sby_activation_percentage = (sum(complete_dataset['sby_need'])/sum(complete_dataset['n_sby']))*100
+old_sby_insufficiency_percentage = (((complete_dataset['drafted'] > 0).sum())/len(complete_dataset['drafted']))*100
+
+print('The standby activation percentage using the old approach is: {:.2f}%'.format(old_sby_activation_percentage))
+print('The standby insufficiency percentage using the old approach is: {:.2f}%'.format(old_sby_insufficiency_percentage))
